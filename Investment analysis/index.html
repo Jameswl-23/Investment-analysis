@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Investment Analyzer</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2537;--bg4:#252d40;
+  --border:#2a3350;--border2:#3a4560;
+  --text:#e8eaf0;--text2:#8b95b0;--text3:#5a6380;
+  --green:#1db87a;--blue:#4a9eff;--amber:#f0a030;--red:#e05555;
+  --radius:10px;--radius-lg:14px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;}
+.logo-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#1db87a,#4a9eff);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.header-note{font-size:11px;color:var(--text3);background:var(--bg3);padding:4px 10px;border-radius:6px;border:1px solid var(--border);}
+.main{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;}
+.page-title{font-size:22px;font-weight:600;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem;}
+
+.picks-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:10px;}
+.tabs{display:flex;gap:6px;background:var(--bg2);border-radius:var(--radius-lg);padding:5px;border:1px solid var(--border);width:fit-content;}
+.tab{padding:7px 20px;border-radius:var(--radius);border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;}
+.tab.active{background:var(--bg4);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4);}
+.tab:hover:not(.active){color:var(--text);}
+.tab:disabled{opacity:.4;cursor:not-allowed;}
+
+.refresh-area{display:flex;align-items:center;gap:10px;}
+.last-updated{font-size:11px;color:var(--text3);}
+.last-updated span{color:var(--text2);}
+.refresh-btn{display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;}
+.refresh-btn:hover:not(:disabled){border-color:var(--green);color:var(--green);}
+.refresh-btn:disabled{opacity:.4;cursor:not-allowed;}
+.refresh-btn i{font-size:14px;}
+.spinning{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:2.5rem;min-height:300px;}
+.stock-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;transition:border-color .15s;}
+.stock-card:hover{border-color:var(--border2);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.ticker{font-size:20px;font-weight:700;}
+.co-name{font-size:11px;color:var(--text3);margin-top:2px;}
+.badges{display:flex;flex-direction:column;gap:5px;align-items:flex-end;}
+.badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+.b-risk-low{background:rgba(29,184,122,.15);color:#1db87a;border:1px solid rgba(29,184,122,.25);}
+.b-risk-med{background:rgba(240,160,48,.15);color:#f0a030;border:1px solid rgba(240,160,48,.25);}
+.b-risk-high{background:rgba(224,85,85,.15);color:#e05555;border:1px solid rgba(224,85,85,.25);}
+.b-profit{background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.25);}
+.ratings{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.rating-box{background:var(--bg3);border-radius:var(--radius);padding:10px 12px;}
+.rating-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.rating-bar{height:4px;border-radius:2px;background:var(--border);margin-bottom:5px;}
+.rating-fill{height:4px;border-radius:2px;}
+.rating-val{font-size:12px;font-weight:600;}
+.thesis{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:14px;padding:10px;background:var(--bg3);border-radius:var(--radius);border-left:3px solid var(--border2);}
+.chart-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.chart-wrap{position:relative;height:140px;}
+
+/* Loading skeleton */
+.skeleton-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;}
+.skel{background:var(--bg3);border-radius:6px;animation:shimmer 1.4s infinite;}
+@keyframes shimmer{0%,100%{opacity:.4}50%{opacity:.8}}
+.skel-title{height:22px;width:80px;margin-bottom:8px;}
+.skel-sub{height:12px;width:140px;margin-bottom:16px;}
+.skel-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.skel-box{height:62px;border-radius:var(--radius);}
+.skel-para{height:12px;margin-bottom:6px;}
+.skel-para.short{width:70%;}
+.skel-chart{height:140px;margin-top:8px;}
+
+.loading-msg{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:3rem;color:var(--text2);}
+.dot-pulse{display:flex;gap:6px;}
+.dot-pulse span{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite;}
+.dot-pulse span:nth-child(2){animation-delay:.2s;}
+.dot-pulse span:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+.error-banner{background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.25);border-radius:var(--radius);padding:12px 16px;color:#e05555;font-size:13px;grid-column:1/-1;}
+
+/* Analyze section */
+.section-head{display:flex;align-items:center;gap:8px;margin-bottom:1.25rem;}
+.section-head i{font-size:18px;color:var(--green);}
+.section-head h2{font-size:16px;font-weight:600;}
+.analyze-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;}
+.analyze-header{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.analyze-icon{width:36px;height:36px;border-radius:var(--radius);background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.25);display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:18px;}
+.analyze-title{font-size:16px;font-weight:600;}
+.analyze-sub{font-size:12px;color:var(--text2);margin-bottom:1.25rem;margin-left:46px;}
+.input-row{display:flex;gap:8px;margin-bottom:1rem;}
+.input-row input{flex:1;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:14px;outline:none;transition:border-color .15s;}
+.input-row input::placeholder{color:var(--text3);}
+.input-row input:focus{border-color:var(--blue);}
+.input-row button{padding:10px 22px;border-radius:var(--radius);border:1px solid var(--blue);background:rgba(74,158,255,.1);color:var(--blue);cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap;}
+.input-row button:hover:not(:disabled){background:rgba(74,158,255,.2);}
+.input-row button:disabled{opacity:.5;cursor:not-allowed;}
+.spinner{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;padding:12px 0;}
+.result-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.result-box{background:var(--bg3);border-radius:var(--radius);padding:12px;}
+.result-box-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.result-box p{font-size:12px;color:var(--text2);line-height:1.6;}
+.result-ticker{font-size:18px;font-weight:700;margin-bottom:2px;}
+.result-sector{font-size:11px;color:var(--text3);margin-bottom:14px;}
+.metrics-box{background:var(--bg3);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.65;}
+.metrics-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.error-msg{color:var(--red);font-size:13px;padding:10px;background:rgba(224,85,85,.1);border-radius:var(--radius);border:1px solid rgba(224,85,85,.25);}
+.disclaimer{font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-top:2rem;line-height:1.6;}
+.disclaimer strong{color:var(--text2);}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">📈</div>
+    Investment Analyzer
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div id="api-status" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;"></div>
+    <input id="api-key-input" type="password" placeholder="Paste Anthropic API key…" style="width:220px;padding:5px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:12px;outline:none;" oninput="handleKeyInput(this.value)"/>
+    <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;" title="Get an API key">Get key ↗</a>
+  </div>
+</header>
+
+<main class="main">
+  <p class="page-title">Smart stock picks</p>
+  <p class="page-sub">AI-curated picks screened for medium risk and higher upside potential. Hit refresh to pull the latest recommendations.</p>
+
+  <div class="picks-toolbar">
+    <div class="tabs">
+      <button class="tab active" id="tab-short" onclick="switchTab('short',this)"><i class="ti ti-bolt" style="font-size:13px;vertical-align:-1px;margin-right:5px;"></i>Short term</button>
+      <button class="tab" id="tab-medium" onclick="switchTab('medium',this)"><i class="ti ti-calendar" style="font-size:13px;vertical-align:-1px;margin-right:5px;"></i>Medium term</button>
+      <button class="tab" id="tab-long" onclick="switchTab('long',this)"><i class="ti ti-trophy" style="font-size:13px;vertical-align:-1px;margin-right:5px;"></i>Long term</button>
+    </div>
+    <div class="refresh-area">
+      <div class="last-updated" id="last-updated"><i class="ti ti-clock" style="font-size:12px;vertical-align:-1px;margin-right:4px;"></i>Never scanned</div>
+      <button class="refresh-btn" id="refresh-btn" onclick="refreshAllPicks()">
+        <i class="ti ti-refresh" id="refresh-icon"></i> Refresh picks
+      </button>
+    </div>
+  </div>
+
+  <div class="stock-grid" id="stock-list">
+    <div class="loading-msg"><p style="font-size:13px;color:var(--text3);">No picks loaded yet. Hit <strong style="color:var(--text2);">Refresh picks</strong> to fetch the latest AI recommendations.</p></div>
+  </div>
+
+  <div class="section-head">
+    <i class="ti ti-search"></i>
+    <h2>Analyze your own stock</h2>
+  </div>
+  <div class="analyze-card">
+    <div class="analyze-header">
+      <div class="analyze-icon"><i class="ti ti-chart-dots"></i></div>
+      <div class="analyze-title">AI stock analyzer</div>
+    </div>
+    <p class="analyze-sub">Enter any ticker symbol for a live AI-powered risk, profitability, and outlook breakdown.</p>
+    <div class="input-row">
+      <input id="ticker-input" type="text" placeholder="e.g. AAPL, TSLA, NVDA" maxlength="12" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')analyzeStock()"/>
+      <button id="analyze-btn" onclick="analyzeStock()"><i class="ti ti-sparkles" style="font-size:13px;vertical-align:-1px;margin-right:5px;"></i>Analyze</button>
+    </div>
+    <div id="analyze-result"></div>
+  </div>
+
+  <div class="disclaimer"><strong>Disclaimer:</strong> This tool uses AI with live web search to generate illustrative analysis for educational purposes only. Return probabilities are estimates, not guarantees. Past performance does not predict future results. Always consult a qualified financial advisor before making investment decisions.</div>
+</main>
+
+<script>
+const charts={};
+let picksData={short:null,medium:null,long:null};
+let currentTab='short';
+let isRefreshing=false;
+
+function riskColor(r){return r<=3?'#1db87a':r<=6?'#f0a030':'#e05555';}
+function riskBadge(r){return r<=3?'b-risk-low':r<=6?'b-risk-med':'b-risk-high';}
+
+function skeletonCard(){
+  return `<div class="skeleton-card">
+    <div class="skel skel-title"></div><div class="skel skel-sub"></div>
+    <div class="skel-row"><div class="skel skel-box"></div><div class="skel skel-box"></div></div>
+    <div class="skel skel-para"></div><div class="skel skel-para short"></div><div class="skel skel-para"></div>
+    <div class="skel skel-chart"></div>
+  </div>`;
+}
+
+function showSkeletons(){
+  document.getElementById('stock-list').innerHTML=skeletonCard()+skeletonCard()+skeletonCard();
+}
+
+function setTabsDisabled(v){
+  ['tab-short','tab-medium','tab-long'].forEach(id=>document.getElementById(id).disabled=v);
+}
+
+async function fetchPicksForTerm(term){
+  const horizons={
+    short:'short-term (days to a few weeks)',
+    medium:'medium-term (1–6 months)',
+    long:'long-term (1–3 years)'
+  };
+      const resp=await fetch(API_URL,{method:'POST',headers:apiHeaders(),body:JSON.stringify({
+    messages:[{role:'user',content:`You are a financial analysis assistant. Use web search to find current market data and identify 3 strong stock picks for ${horizons[term]} investors. Focus on stocks with MEDIUM risk and HIGHER upside potential. Avoid very speculative or very low-risk picks. Return ONLY a valid JSON array (no markdown, no backticks, no preamble) of exactly 3 objects, each with:
+{"ticker":string,"name":string,"risk":number 1-10,"riskLabel":"Low"|"Medium"|"High","profit":number 1-10,"thesis":string 2-3 sentences on why this is a good pick right now,"probData":[{"p":number probability 0-100,"r":number return percent}] exactly 5 points from highest probability/lowest return to lowest probability/highest return}
+Make probData realistic and specific to current market conditions for this stock.`}]
+  })});
+  const data=await resp.json();
+  const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+  return JSON.parse(text.replace(/```json|```/g,'').trim());
+}
+
+function getKey(){return document.getElementById('api-key-input').value.trim();}
+function handleKeyInput(v){
+  const dot=document.getElementById('api-status');
+  dot.style.background=v.startsWith('sk-ant-')&&v.length>20?'#1db87a':'#e05555';
+}
+const API_URL='/api/proxy';
+function apiHeaders(){return{'Content-Type':'application/json','x-api-key':getKey(),'anthropic-version':'2023-06-01'};}
+
+async function refreshAllPicks(){
+  if(isRefreshing)return;
+  if(!getKey()){
+    document.getElementById('stock-list').innerHTML=`<div class="error-banner"><i class="ti ti-key" style="margin-right:6px;vertical-align:-2px;"></i>Please paste your Anthropic API key in the field at the top right first.</div>`;
+    return;
+  }
+  isRefreshing=true;
+  const btn=document.getElementById('refresh-btn');
+  const icon=document.getElementById('refresh-icon');
+  btn.disabled=true;
+  icon.classList.add('spinning');
+  setTabsDisabled(true);
+  showSkeletons();
+  picksData={short:null,medium:null,long:null};
+
+  try{
+    const [short,medium,long]=await Promise.all([
+      fetchPicksForTerm('short'),
+      fetchPicksForTerm('medium'),
+      fetchPicksForTerm('long')
+    ]);
+    picksData={short,medium,long};
+    const now=new Date();
+    document.getElementById('last-updated').innerHTML=
+      `<i class="ti ti-clock" style="font-size:12px;vertical-align:-1px;margin-right:4px;"></i>Last scanned: <span>${now.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} at ${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>`;
+    renderStocks(currentTab);
+  }catch(e){
+    document.getElementById('stock-list').innerHTML=
+      `<div class="error-banner"><i class="ti ti-alert-circle" style="margin-right:6px;vertical-align:-2px;"></i>Failed to fetch picks. Please check your connection and try again.</div>`;
+  }
+
+  btn.disabled=false;
+  icon.classList.remove('spinning');
+  setTabsDisabled(false);
+  isRefreshing=false;
+}
+
+function renderStocks(tab){
+  const list=document.getElementById('stock-list');
+  Object.entries(charts).forEach(([k,c])=>{if(k!=='analyze'){c.destroy();delete charts[k];}});
+  const stocks=picksData[tab];
+  if(!stocks){
+    list.innerHTML=`<div class="loading-msg"><p style="font-size:13px;color:var(--text3);">No picks loaded yet. Hit <strong style="color:var(--text2);">Refresh picks</strong> to fetch the latest AI recommendations.</p></div>`;
+    return;
+  }
+  list.innerHTML='';
+  stocks.forEach((s,i)=>{
+    const id='c'+tab+i;
+    list.innerHTML+=`<div class="stock-card">
+      <div class="card-top">
+        <div><div class="ticker">${s.ticker}</div><div class="co-name">${s.name}</div></div>
+        <div class="badges">
+          <span class="badge ${riskBadge(s.risk)}"><i class="ti ti-shield-half" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Risk ${s.risk}/10</span>
+          <span class="badge b-profit"><i class="ti ti-trending-up" style="font-size:11px;vertical-align:-1px;margin-right:3px;"></i>Profit ${s.profit}/10</span>
+        </div>
+      </div>
+      <div class="ratings">
+        <div class="rating-box">
+          <div class="rating-label">Risk</div>
+          <div class="rating-bar"><div class="rating-fill" style="width:${s.risk*10}%;background:${riskColor(s.risk)};"></div></div>
+          <div class="rating-val" style="color:${riskColor(s.risk)};">${s.riskLabel}</div>
+        </div>
+        <div class="rating-box">
+          <div class="rating-label">Profitability</div>
+          <div class="rating-bar"><div class="rating-fill" style="width:${s.profit*10}%;background:#4a9eff;"></div></div>
+          <div class="rating-val" style="color:#4a9eff;">${s.profit}/10</div>
+        </div>
+      </div>
+      <div class="thesis">${s.thesis}</div>
+      <div class="chart-label">Profit probability curve</div>
+      <div class="chart-wrap"><canvas id="${id}" role="img" aria-label="Probability vs return for ${s.ticker}"></canvas></div>
+    </div>`;
+  });
+  stocks.forEach((s,i)=>{
+    const id='c'+tab+i;
+    charts[id]=new Chart(document.getElementById(id),{
+      type:'line',
+      data:{labels:s.probData.map(d=>d.r+'%'),datasets:[{label:'Probability',data:s.probData.map(d=>d.p),borderColor:'#1db87a',backgroundColor:'rgba(29,184,122,0.08)',fill:true,tension:0.45,pointBackgroundColor:'#1db87a',pointRadius:4,pointHoverRadius:6,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}% chance of ≥${s.probData[ctx.dataIndex].r}% return`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a6380',font:{size:10}},title:{display:true,text:'Target return',color:'#5a6380',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a6380',font:{size:10},callback:v=>v+'%'},min:0,max:100,title:{display:true,text:'Probability',color:'#5a6380',font:{size:10}}}}}
+    });
+  });
+}
+
+function switchTab(tab,el){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderStocks(tab);
+}
+
+async function analyzeStock(){
+  const t=document.getElementById('ticker-input').value.trim();
+  if(!t)return;
+  const res=document.getElementById('analyze-result');
+  const btn=document.getElementById('analyze-btn');
+  btn.disabled=true;
+  res.innerHTML=`<div class="spinner"><div class="dot-pulse"><span></span><span></span><span></span></div>&nbsp;Analyzing ${t} with live web data…</div>`;
+  try{
+    const resp=await fetch(API_URL,{method:'POST',headers:apiHeaders(),body:JSON.stringify({
+      messages:[{role:'user',content:`You are a financial analysis assistant. Analyze the stock ticker: ${t}. Use web search to find current information. Return ONLY a valid JSON object (no markdown, no backticks, no preamble) with exactly these fields:
+{"ticker":string,"companyName":string,"sector":string,"riskRating":number 1-10,"riskLabel":"Low"|"Medium"|"High","profitabilityRating":number 1-10,"shortTermOutlook":string 2 sentences,"mediumTermOutlook":string 2 sentences,"longTermOutlook":string 2 sentences,"keyMetrics":string 2-3 key facts about valuation or growth,"probCurve":[{"prob":number,"return":number}] exactly 5 points from highest probability/lowest return to lowest probability/highest return}`}]
+    })});
+    const data=await resp.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const r=JSON.parse(text.replace(/```json|```/g,'').trim());
+    res.innerHTML=`
+      <div class="result-ticker">${r.ticker} — ${r.companyName}</div>
+      <div class="result-sector">${r.sector}</div>
+      <div class="ratings" style="margin-bottom:12px;">
+        <div class="rating-box"><div class="rating-label">Risk rating</div><div class="rating-bar"><div class="rating-fill" style="width:${r.riskRating*10}%;background:${riskColor(r.riskRating)};"></div></div><div class="rating-val" style="color:${riskColor(r.riskRating)};">${r.riskLabel} (${r.riskRating}/10)</div></div>
+        <div class="rating-box"><div class="rating-label">Profitability rating</div><div class="rating-bar"><div class="rating-fill" style="width:${r.profitabilityRating*10}%;background:#4a9eff;"></div></div><div class="rating-val" style="color:#4a9eff;">${r.profitabilityRating}/10</div></div>
+      </div>
+      <div class="metrics-box"><div class="metrics-label">Key metrics</div>${r.keyMetrics}</div>
+      <div class="result-grid">
+        <div class="result-box"><div class="result-box-label">Short term</div><p>${r.shortTermOutlook}</p></div>
+        <div class="result-box"><div class="result-box-label">Medium term</div><p>${r.mediumTermOutlook}</p></div>
+        <div class="result-box"><div class="result-box-label">Long term</div><p>${r.longTermOutlook}</p></div>
+      </div>
+      <div class="chart-label">Profit probability curve</div>
+      <div class="chart-wrap" style="height:150px;"><canvas id="analyze-chart" role="img" aria-label="Probability vs return for ${r.ticker}"></canvas></div>`;
+    setTimeout(()=>{
+      if(charts['analyze'])charts['analyze'].destroy();
+      charts['analyze']=new Chart(document.getElementById('analyze-chart'),{
+        type:'line',
+        data:{labels:r.probCurve.map(d=>d.return+'%'),datasets:[{label:'Probability',data:r.probCurve.map(d=>d.prob),borderColor:'#4a9eff',backgroundColor:'rgba(74,158,255,0.08)',fill:true,tension:0.45,pointBackgroundColor:'#4a9eff',pointRadius:4,borderWidth:2}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}% chance of ≥${r.probCurve[ctx.dataIndex].return}% return`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a6380',font:{size:10}},title:{display:true,text:'Target return',color:'#5a6380',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#5a6380',font:{size:10},callback:v=>v+'%'},min:0,max:100,title:{display:true,text:'Probability',color:'#5a6380',font:{size:10}}}}}
+      });
+    },50);
+  }catch(e){
+    res.innerHTML=`<div class="error-msg"><i class="ti ti-alert-circle" style="margin-right:6px;vertical-align:-2px;"></i>Could not analyze "${t}". Check the ticker symbol and try again.</div>`;
+  }
+  btn.disabled=false;
+}
+</script>
+</body>
+</html>
